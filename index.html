@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa interactivo de oportunidades comerciales — Jujuy</title>
+</head>
+<body style="margin:0;">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css');
+
+#jm-app {
+  --bg: #F7F2E9;
+  --surface: #FFFFFF;
+  --ink: #22282A;
+  --ink-soft: #64645C;
+  --teal: #1E4E49;
+  --teal-dark: #163A36;
+  --ochre: #B4812A;
+  --alta: #2F6F4F;
+  --alta-bg: #E4EEE6;
+  --media: #B4812A;
+  --media-bg: #F5EBD8;
+  --baja: #8C7A6B;
+  --baja-bg: #EFEAE1;
+  --line: #E2D9C6;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  min-height: 100%;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+#jm-app * { box-sizing: border-box; }
+#jm-app .mono { font-family: 'IBM Plex Mono', monospace; }
+
+#jm-app .jm-head {
+  background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+  color: #F7F2E9;
+  padding: 26px 28px 20px;
+  position: relative;
+  overflow: hidden;
+}
+#jm-app .jm-head::after {
+  content: "";
+  position: absolute;
+  right: -60px; top: -60px;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(180,129,42,0.35) 0%, transparent 70%);
+}
+#jm-app .jm-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #C9A25A;
+  margin: 0 0 6px;
+}
+#jm-app .jm-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.15;
+  margin: 0 0 8px;
+  max-width: 640px;
+}
+#jm-app .jm-sub {
+  font-size: 13.5px;
+  color: #D9E2DC;
+  max-width: 600px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+#jm-app .jm-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+#jm-app .jm-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: #D9E2DC;
+}
+#jm-app .jm-legend-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  display: inline-block;
+}
+
+#jm-app .jm-toolbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 400;
+}
+#jm-app .jm-search {
+  flex: 1 1 220px;
+  position: relative;
+}
+#jm-app .jm-search input {
+  width: 100%;
+  padding: 10px 12px 10px 34px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13.5px;
+  color: var(--ink);
+  background: var(--bg);
+  outline: none;
+  transition: border-color 0.15s;
+}
+#jm-app .jm-search input:focus { border-color: var(--teal); }
+#jm-app .jm-search svg {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: var(--ink-soft);
+}
+#jm-app select {
+  padding: 10px 30px 10px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364645C'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E") no-repeat right 8px center;
+  background-size: 16px;
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+}
+#jm-app .jm-count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  margin-left: auto;
+}
+#jm-app .jm-reset {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12.5px;
+  color: var(--teal);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+#jm-app .jm-dist-wrap { padding: 14px 28px 4px; background: var(--surface); }
+#jm-app .jm-dist-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+#jm-app .jm-dist-bar {
+  display: flex;
+  width: 100%;
+  height: 30px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+#jm-app .jm-dist-seg {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #fff;
+  transition: filter 0.15s ease, transform 0.15s ease;
+  border-right: 1px solid rgba(0,0,0,0.12);
+  white-space: nowrap;
+  overflow: hidden;
+}
+#jm-app .jm-dist-seg:last-child { border-right: none; }
+#jm-app .jm-dist-seg:hover { filter: brightness(1.12); }
+#jm-app .jm-dist-seg.dim { opacity: 0.35; }
+#jm-app .jm-dist-seg[data-tier="Alta"] { background: #3C7F5C; }
+#jm-app .jm-dist-seg[data-tier="Media"] { background: #C48F35; }
+#jm-app .jm-dist-seg[data-tier="Baja"] { background: #746457; }
+#jm-app .jm-dist-hint { font-size: 11px; color: var(--ink-soft); margin: 6px 0 10px; }
+
+/* Map */
+#jm-app .jm-map-wrap { padding: 0 28px; background: var(--surface); }
+#jm-app #jm-map {
+  width: 100%;
+  height: 480px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  margin-bottom: 16px;
+  background: #E9E4D6;
+}
+#jm-app .leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+#jm-app .jm-popup-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 14.5px;
+  margin: 0 0 4px;
+  color: var(--teal-dark);
+}
+#jm-app .jm-popup-sub {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  margin: 0 0 8px;
+}
+#jm-app .jm-popup-tiers {
+  display: flex; gap: 8px; margin-bottom: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+}
+#jm-app .jm-popup-btn {
+  display: inline-block;
+  background: var(--teal);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+}
+#jm-app .jm-marker-label {
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.85);
+}
+
+/* Results */
+#jm-app .jm-results-head {
+  padding: 16px 28px 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#jm-app .jm-results-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 16px;
+  margin: 0;
+}
+#jm-app .jm-loc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--media-bg);
+  color: var(--media);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+#jm-app .jm-loc-chip button {
+  background: none; border: none; cursor: pointer; color: inherit; font-weight: 700; font-size: 13px; line-height: 1; padding: 0;
+}
+
+#jm-app .jm-body { padding: 8px 28px 40px; }
+#jm-app .jm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+#jm-app .jm-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+#jm-app .jm-card:hover { box-shadow: 0 4px 16px rgba(30,78,73,0.08); border-color: #CFC3A6; }
+#jm-app .jm-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+#jm-app .jm-name {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.25;
+  margin: 0;
+  color: var(--teal-dark);
+}
+#jm-app .jm-badge {
+  flex-shrink: 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+#jm-app .jm-badge[data-tier="Alta"] { background: var(--alta-bg); color: var(--alta); }
+#jm-app .jm-badge[data-tier="Media"] { background: var(--media-bg); color: var(--media); }
+#jm-app .jm-badge[data-tier="Baja"] { background: var(--baja-bg); color: var(--baja); }
+#jm-app .jm-cat {
+  display: inline-block;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ochre);
+  font-weight: 600;
+}
+#jm-app .jm-loc {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10.5px;
+  color: var(--teal);
+  font-weight: 600;
+  margin-left: 8px;
+}
+#jm-app .jm-rubro { font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; margin: 0; }
+#jm-app .jm-score-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+#jm-app .jm-score-bar-bg { flex: 1; height: 6px; border-radius: 4px; background: var(--bg); overflow: hidden; }
+#jm-app .jm-score-bar-fill { height: 100%; border-radius: 4px; }
+#jm-app .jm-score-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; color: var(--ink-soft); width: 32px; text-align: right; }
+#jm-app .jm-contact { border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 4px; display: flex; flex-direction: column; gap: 4px; }
+#jm-app .jm-contact a, #jm-app .jm-contact span { font-size: 12px; color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 6px; }
+#jm-app .jm-contact a { color: var(--teal); }
+#jm-app .jm-contact a:hover { text-decoration: underline; }
+#jm-app .jm-contact svg { width: 12px; height: 12px; flex-shrink: 0; color: var(--ink-soft); }
+#jm-app .jm-contact .jm-empty { color: #B7AF9E; font-style: italic; }
+#jm-app .jm-empty-state { text-align: center; padding: 50px 20px; color: var(--ink-soft); }
+#jm-app .jm-empty-state h3 { font-family: 'Fraunces', serif; font-size: 18px; color: var(--ink); margin: 0 0 6px; }
+
+@media (max-width: 640px) {
+  #jm-app .jm-head, #jm-app .jm-toolbar, #jm-app .jm-body, #jm-app .jm-dist-wrap, #jm-app .jm-map-wrap, #jm-app .jm-results-head { padding-left: 16px; padding-right: 16px; }
+  #jm-app .jm-title { font-size: 21px; }
+  #jm-app #jm-map { height: 380px; }
+}
+#jm-app :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+</style>
+
+<div id="jm-app">
+  <div class="jm-head">
+    <p class="jm-eyebrow">Herramienta comercial &middot; Oferta Productiva Jujuy 2024&ndash;2025</p>
+    <h1 class="jm-title">Mapa de oportunidades: 155 empresas jujeñas</h1>
+    <p class="jm-sub">Explorá el mapa por localidad y mirá qué tan probable es que cada empresa importe bienes &mdash; una señal para priorizar a quién contactar primero.</p>
+    <div class="jm-legend">
+      <span class="jm-legend-item"><span class="jm-legend-dot" style="background:#3C7F5C;"></span>Alta probabilidad</span>
+      <span class="jm-legend-item"><span class="jm-legend-dot" style="background:#C48F35;"></span>Media probabilidad</span>
+      <span class="jm-legend-item"><span class="jm-legend-dot" style="background:#746457;"></span>Baja probabilidad</span>
+      <span class="jm-legend-item">Tamaño del círculo = cantidad de empresas en la localidad</span>
+    </div>
+  </div>
+
+  <div class="jm-toolbar">
+    <div class="jm-search">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/></svg>
+      <input type="text" id="jm-search-input" placeholder="Buscar por empresa o rubro (ej: vinos, litio, catering...)" />
+    </div>
+    <select id="jm-cat-select"></select>
+    <select id="jm-sort-select">
+      <option value="score-desc">Ordenar: mayor probabilidad</option>
+      <option value="score-asc">Ordenar: menor probabilidad</option>
+      <option value="az">Ordenar: A&ndash;Z</option>
+    </select>
+    <button class="jm-reset" id="jm-reset">Limpiar filtros</button>
+    <div class="jm-count" id="jm-count"></div>
+  </div>
+
+  <div class="jm-dist-wrap">
+    <div class="jm-dist-label"><span>Distribución por probabilidad de importación</span><span>tocá una franja para filtrar</span></div>
+    <div class="jm-dist-bar" id="jm-dist-bar"></div>
+    <div class="jm-dist-hint" id="jm-dist-hint"></div>
+  </div>
+
+  <div class="jm-map-wrap">
+    <div id="jm-map"></div>
+  </div>
+
+  <div class="jm-results-head">
+    <h2 class="jm-results-title">Empresas</h2>
+    <span id="jm-loc-chip-wrap"></span>
+  </div>
+
+  <div class="jm-body">
+    <div class="jm-grid" id="jm-grid"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function() {
+  const DATA = [{"empresa": "INGENIO RIO GRANDE S.A. CIA. ARG. AGR. E IND.", "rubro": "Producción de Azúcar Tipo \"A\" - Azúcar crudo p/Exportación - Alcohol Etílico.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 30, "expBonus": 15, "techBonus": 0, "score": 77, "tier": "Alta", "justificacion": "Sector/insumos: 32/40; Escala societaria: 30/30; Orientación exportadora explícita: +15", "direccion": "Planta de Producción La Mendieta - Jujuy / Of. Comercial: Reconquista N°336 1° - C.A.B.A. - Bs.As.", "telefono": "+54 11 4394-8469 / 8569 / 0778", "email": "", "locality": "La Mendieta", "lat": -23.8333, "lng": -64.75, "locApprox": false}, {"empresa": "SSR MINNING - MINA PIRQUITAS S.A.", "rubro": "Extracción de Minerales Metalíferos no Ferrosos, excepto Minerales de Uranio y Torio.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 40, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 70, "tier": "Alta", "justificacion": "Sector/insumos: 40/40; Escala societaria: 30/30", "direccion": "", "telefono": "+54 9 387-566-1612", "email": "", "locality": "Mina Pirquitas (Puna)", "lat": -22.7, "lng": -66.05, "locApprox": false}, {"empresa": "SALES DE JUJUY S.A.", "rubro": "Producción Comercial de Carbonato de Litio Purificado Primario, Micronizado y No Micronizado.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 40, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 70, "tier": "Alta", "justificacion": "Sector/insumos: 40/40; Escala societaria: 30/30", "direccion": "Curupaití N° 151 - B° Alto Padilla - S.S. de Jujuy", "telefono": "+54 388 422 9011", "email": "salesdejujuy.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "MINERA EXAR S.A.", "rubro": "Producción de Litio en Salar Cauchari - Olaroz.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 40, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 70, "tier": "Alta", "justificacion": "Sector/insumos: 40/40; Escala societaria: 30/30", "direccion": "Palma R. Carrillo 54 Pb", "telefono": "+54 9 388-4831000", "email": "mineraexar.com.ar", "locality": "Salar Cauchari-Olaroz", "lat": -23.6, "lng": -66.75, "locApprox": false}, {"empresa": "CANNAVA S.E.", "rubro": "Fábrica de Sust. Químicas y Medicamentos de Uso Humano y Prod. Farmacéuticos derivados de Cannabis.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 40, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 70, "tier": "Alta", "justificacion": "Sector/insumos: 40/40; Escala societaria: 30/30", "direccion": "La Caridad N° 320 - B° Chijra - S.S. de Jujuy", "telefono": "+54-9-388-4312-903 / 388-4314361", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "COMPAÑÍA MINERA URKUPIÑA", "rubro": "Sulfato de calcio deshidratado libre de Sodio, Hierro y Aluminio.", "hoja": "Organismos Públicos y Privados", "sectorPts": 40, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 70, "tier": "Alta", "justificacion": "Sector/insumos: 40/40; Escala societaria: 30/30", "direccion": "Dr. Padilla 665, Ciudad de Nieva, S.S. de Jujuy", "telefono": "42371750", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "PROCESADORA DE BORATOS ARG. S.A.", "rubro": "Extracción de minerales para la fabricación de productos químicos.", "hoja": "Organismos Públicos y Privados", "sectorPts": 40, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 70, "tier": "Alta", "justificacion": "Sector/insumos: 40/40; Escala societaria: 30/30", "direccion": "Ruta 1 km. 12,5, Palpalá", "telefono": "4273755", "email": "", "locality": "Palpalá", "lat": -24.2528, "lng": -65.2069, "locApprox": false}, {"empresa": "GRUPO MINERO LOS BOROS S.A.", "rubro": "Explotación de Minas y Canteras, fabricación de productos minerales no metálicos.", "hoja": "Organismos Públicos y Privados", "sectorPts": 40, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 70, "tier": "Alta", "justificacion": "Sector/insumos: 40/40; Escala societaria: 30/30", "direccion": "Necochea 225 2° Piso, S.S. de Jujuy", "telefono": "4226101-4233696", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "CITRUS DEL NORTE S.A.", "rubro": "Productos cítricos de consumo local y exportación.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 30, "expBonus": 15, "techBonus": 0, "score": 67, "tier": "Alta", "justificacion": "Sector/insumos: 22/40; Escala societaria: 30/30; Orientación exportadora explícita: +15", "direccion": "Rocha Solorzano N 950 - Depto 13 - S.S. de Jujuy", "telefono": "+54 9 388-423900", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "PAPELERA DEL NOA SA.", "rubro": "Fabrica de Pasta de Madera, Papel y Cartón.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 62, "tier": "Alta", "justificacion": "Sector/insumos: 32/40; Escala societaria: 30/30", "direccion": "Ruta Provincial N° 1 Km 9 - Río Blanco - Palpala", "telefono": "+54 11 4898 4950", "email": "", "locality": "Palpalá", "lat": -24.2528, "lng": -65.2069, "locApprox": false}, {"empresa": "LEDESMA S.A.A.I.", "rubro": "Elaboración de Azúcar, Fabricación de Alcohol, Cultivo de Caña de Azúcar Cítricos y Frutas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 62, "tier": "Alta", "justificacion": "Sector/insumos: 32/40; Escala societaria: 30/30", "direccion": "El Cochucho 165 - B° Los Perales - S.S. de Jujuy - C. Central: Av. Corrientes 415 - Bs.As.", "telefono": "+54 9 011-43781555", "email": "ledesma.com.ar", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "INGENIO LA ESPERANZA", "rubro": "Azúcar - Azúcar Orgánica / Mieles y Melazas Orgánicas / Alcohol y Alcohol Orgánico.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 62, "tier": "Alta", "justificacion": "Sector/insumos: 32/40; Escala societaria: 30/30", "direccion": "Senador Pérez S/n La Esperanza - Jujuy", "telefono": "", "email": "grupobudeguer.com", "locality": "La Esperanza (Ledesma)", "lat": -23.95, "lng": -64.83, "locApprox": false}, {"empresa": "MOLINO PAMPA BLANCA S.A.", "rubro": "Harina de Trigo Tipos 000 / 0000 - Harina Leudante, Integral y Salvado de Trigo y Sub productos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 62, "tier": "Alta", "justificacion": "Sector/insumos: 32/40; Escala societaria: 30/30", "direccion": "Planta Industrial Rn 34, Km 1153, Cp. (4603) - Pampa Blanca - Jujuy", "telefono": "", "email": "molinopampablanca.com.ar", "locality": "Pampa Blanca", "lat": -24.35, "lng": -65.05, "locApprox": false}, {"empresa": "ACEROS ZAPLA S.A.", "rubro": "Fundición de hierro y acero y Fabricación en Industrias básicas de productos de Hierro y Acero NCP.", "hoja": "Organismos Públicos y Privados", "sectorPts": 32, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 62, "tier": "Alta", "justificacion": "Sector/insumos: 32/40; Escala societaria: 30/30", "direccion": "Estación Gral. Savio, Palpalá", "telefono": "4271681-684-743", "email": "", "locality": "Palpalá", "lat": -24.2528, "lng": -65.2069, "locApprox": false}, {"empresa": "NEW BRICKS SA. - USOUND", "rubro": "Producción de Audiómetro Ultra portátil.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 40, "escalaPts": 5, "expBonus": 0, "techBonus": 10, "score": 55, "tier": "Media", "justificacion": "Sector/insumos: 40/40; Escala societaria: 5/30; Tecnología/equipamiento mencionado: +10", "direccion": "Gral Belgrano N° 246 5° A - B° Centro - S.S. de Jujuy", "telefono": "+54 9 388-5060029", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "SERVICIOS INDUSTRIALES S.A.S. - IMANTA", "rubro": "Fab. de Productos Metálicos para uso Estructural.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 20, "expBonus": 0, "techBonus": 0, "score": 52, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 20/30", "direccion": "Av. Córdoba 60 - Río Blanco - Palpalá - Jujuy", "telefono": "+54 9 388-4293532", "email": "https://imanta.com.ar/", "locality": "Palpalá", "lat": -24.2528, "lng": -65.2069, "locApprox": false}, {"empresa": "DULCES OTITO S.A.I.C.", "rubro": "Elaboración y Envasado de Dulces, Mermeladas y Jaleas / Conservas de Frutas y Hortalizas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 52, "tier": "Media", "justificacion": "Sector/insumos: 22/40; Escala societaria: 30/30", "direccion": "Las Heras 434 - B° Almirante Brown - S.S. de Jujuy", "telefono": "+54 9 388-4251496", "email": "dulcesotito.com.ar", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "RAICES S.A.", "rubro": "Cultivo de Legumbres, Tabaco y Frutas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 52, "tier": "Media", "justificacion": "Sector/insumos: 22/40; Escala societaria: 30/30", "direccion": "Independencia 643 - B° Centro - S.S. de Jujuy", "telefono": "", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "VISION JUJUY S.A.", "rubro": "Producción de Frutas Cítricas - Palmasola.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 52, "tier": "Media", "justificacion": "Sector/insumos: 22/40; Escala societaria: 30/30", "direccion": "Independencia N° 643 - B° Centro - S.S. de Jujuy", "telefono": "", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "INTERJAMA S.R.L.", "rubro": "Gestión Aduanera para el Transporte de mercaderías, transporte automotor de pasajeros, construcción civiles, venta al por mayor de mercancías de metales y minerales metalíferos.", "hoja": "Organismos Públicos y Privados", "sectorPts": 40, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 52, "tier": "Media", "justificacion": "Sector/insumos: 40/40; Escala societaria: 12/30", "direccion": "Alvear 495 2° \"C\", S.S. de Jujuy", "telefono": "03887-490302", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "GURRIERI LEGUMBRES SRL.", "rubro": "Comercialización, Procesamiento y Exportación de Granos y Legumbres.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 12, "expBonus": 15, "techBonus": 0, "score": 49, "tier": "Media", "justificacion": "Sector/insumos: 22/40; Escala societaria: 12/30; Orientación exportadora explícita: +15", "direccion": "Av. Malvinas Argentinas N°397 - Perico - Jujuy", "telefono": "+54 388-4911588", "email": "gurrierilegumbres.com/servicios", "locality": "Perico", "lat": -24.3833, "lng": -65.1167, "locApprox": false}, {"empresa": "TERRAMAQ SRL.", "rubro": "Recuperación de materiales y desechos no metálicos - Fábrica de productos plásticos reciclado.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 44, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 12/30", "direccion": "Olegario Andrade N° 897 - B° Los Perales - S.S. de Jujuy", "telefono": "+54-9-388-504-0078", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "ENVIFLEX SRL.", "rubro": "Fabricación de big-bags utilizando tela de rafia de polipropileno.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 44, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 12/30", "direccion": "Parque Industrial Snopek, Palpalá", "telefono": "", "email": "enviflexcalidad@gmail.com", "locality": "Palpalá", "lat": -24.2528, "lng": -65.2069, "locApprox": false}, {"empresa": "FULL BLOCK SRL", "rubro": "Fábrica de premoldeados y adoquines.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 44, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 12/30", "direccion": "Av. Catalano N°138 - Parque Industrial Palpala", "telefono": "+54 9 388-405-2829", "email": "", "locality": "Palpalá", "lat": -24.2528, "lng": -65.2069, "locApprox": false}, {"empresa": "VEXAR SRL.", "rubro": "Fábrica de Carpintería Metálica - PVC - Madera.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 44, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 12/30", "direccion": "Delfo Cabrera N° 60 - B° Huaico - S.S. de Jujuy", "telefono": "+54-9-388-4224421", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "GHERARGRO SRL.", "rubro": "Elaboración de Aceites y Grasas Vegetales sin refinar.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 44, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 12/30", "direccion": "Parque Industrial Perico Lote N° 958 - Perico", "telefono": "+54 9 388-497-1084", "email": "", "locality": "Perico", "lat": -24.3833, "lng": -65.1167, "locApprox": false}, {"empresa": "DULCES OTITO S.A.", "rubro": "Realiza las preparaciones artesanales de Dulces, Jaleas, Mermeladas, Almíbares y Puré de tomate en Tetra Brik.", "hoja": "Organismos Públicos y Privados", "sectorPts": 14, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 44, "tier": "Media", "justificacion": "Sector/insumos: 14/40; Escala societaria: 30/30", "direccion": "Las Heras 434, S.S. de Jujuy", "telefono": "4251153-4251496", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "EMPRESA JUJEÑA DE ENERGÍA S.A.", "rubro": "Se dedica a la distribución de Energía Eléctrica.", "hoja": "Organismos Públicos y Privados", "sectorPts": 12, "escalaPts": 30, "expBonus": 0, "techBonus": 0, "score": 42, "tier": "Media", "justificacion": "Sector/insumos: 12/40; Escala societaria: 30/30", "direccion": "Independencia 60, S.S. de Jujuy", "telefono": "4239508", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "INDUSTRIA METALÚRGICA FERIGUTTI S.H.", "rubro": "Industria Metalúrgica.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 37, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 5/30", "direccion": "Av. Hipólito Yrigoyen N° 1352 - B° Cuyaya - S.S. de Jujuy", "telefono": "+54 9 388 4230641", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "MER-PLAST", "rubro": "Empresa de Reciclaje de Polietileno - Fábrica de bolsas plásticas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 37, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 5/30", "direccion": "Parque Industrial Perico Lote N° 959 - Perico", "telefono": "+54 9 388-407-3144", "email": "", "locality": "Perico", "lat": -24.3833, "lng": -65.1167, "locApprox": false}, {"empresa": "TIMS SAS", "rubro": "Reciclaje de contenedores marítimos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 37, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 5/30", "direccion": "", "telefono": "+54 9 3885 31-0555", "email": "info.timssas@gmail.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": true}, {"empresa": "FINCA SAN JUAN DE DIOS - POROTOS DE LA FINCA", "rubro": "Cultivo de Legumbres y Caña de Azúcar.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 37, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 5/30", "direccion": "Libertad n°138 - B° Ciudad de Nieva - S.S. de Jujuy", "telefono": "+54-9-381-416-0040", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "FP SEMILLAS Y PAPELES", "rubro": "Reciclado de papel para folletería, tarjetas, agendas, cuadernos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 32, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 37, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 5/30", "direccion": "Las Amapolas N 867 - S.S. de Jujuy", "telefono": "+54 9 388-4808793", "email": "FPSemillasyPapeles", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "TELAS PLÁSTICAS LUCERO", "rubro": "Cortinas barrales madera, cortinas telas accesorios, hilos algodón, hilos plásticos, lonas, lonas plásticas, sogas y cuerdas.", "hoja": "Organismos Públicos y Privados", "sectorPts": 32, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 37, "tier": "Media", "justificacion": "Sector/insumos: 32/40; Escala societaria: 5/30", "direccion": "Av. Alte. Brown 425, S.S. de Jujuy", "telefono": "4254697", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "AGRÍCOLA LIBANESA SRL", "rubro": "Cultivo de Frutas - Higos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 34, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 12/30", "direccion": "Finca Santa Ana - San Pedro", "telefono": "+54 9 388-502-2000", "email": "", "locality": "San Pedro de Jujuy", "lat": -24.2333, "lng": -64.8667, "locApprox": false}, {"empresa": "COOP. C.A.U. QUE. VA. LTDA.", "rubro": "Cultivo de Hortalizas frescas. Elab. de productos Sin Tacc.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 34, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 12/30", "direccion": "R.N. N° 9 - KM. 1768 - Maimará", "telefono": "+54-9-388-517-1641", "email": "", "locality": "Maimará", "lat": -23.6333, "lng": -65.3333, "locApprox": false}, {"empresa": "COOP. COTEXNOA LTDA", "rubro": "Cooperativa de Producción de Fibras Textiles Animales.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 34, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 12/30", "direccion": "Las Palmeras N° 446 - B° Alto Palpala - Palpala", "telefono": "+54 9 388-540-8003", "email": "", "locality": "Palpalá", "lat": -24.2528, "lng": -65.2069, "locApprox": false}, {"empresa": "COOPERATIVA DE TABACALEROS DE JUJUY", "rubro": "Preparación de hojas de tabaco, elaboración de productos de tabaco, distribución de combustibles gaseosos por tubería, servicios industriales para la elaboración de alimentos y bebidas, venta al por mayor y empaque de frutas, legumbres y hortalizas, deshidratada o desecadas y venta de flores, plantas, semillas.", "hoja": "Organismos Públicos y Privados", "sectorPts": 22, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 34, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 12/30", "direccion": "Urquiza 708, Perico", "telefono": "4911139", "email": "", "locality": "Perico", "lat": -24.3833, "lng": -65.1167, "locApprox": false}, {"empresa": "SANTA CORNELIA S.R.L.", "rubro": "Cría de ganado bovino, producción de leche.", "hoja": "Organismos Públicos y Privados", "sectorPts": 22, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 34, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 12/30", "direccion": "Santibañez 1800, S.S. de Jujuy", "telefono": "4242308", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "FINCA DON ARMANDO S.R.L.", "rubro": "Realiza el cultivo de frutas exóticas, hortalizas, tabaco, uva de mesa.", "hoja": "Organismos Públicos y Privados", "sectorPts": 22, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 34, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 12/30", "direccion": "Alberto Castillo 749, Perico", "telefono": "388 4702222", "email": "", "locality": "Perico", "lat": -24.3833, "lng": -65.1167, "locApprox": false}, {"empresa": "GIRSU JUJUY S.E.", "rubro": "Producción de Bio Abono - Serv. de Asistencia Técnica y Capac. p/el manejo de residuos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 20, "expBonus": 0, "techBonus": 0, "score": 32, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 20/30", "direccion": "Rep. De Siria N° 147 - B° Gorriti - S.S. de Jujuy", "telefono": "+54 9 3883 344240", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "ABITO S.A.S.", "rubro": "Fabricación de Ropa de Trabajo - Uniformes.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 20, "expBonus": 0, "techBonus": 0, "score": 32, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 20/30", "direccion": "Cerro Zapla 548 - S.S. de Jujuy", "telefono": "+54 9 388-4149331", "email": "abitouniformes.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "MEALLA AGROPECUARIA S.A", "rubro": null, "hoja": "Organismos Públicos y Privados", "sectorPts": 12, "escalaPts": 20, "expBonus": 0, "techBonus": 0, "score": 32, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 20/30", "direccion": "San Martín 287, S.S. de Jujuy", "telefono": "4233492", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "CLAUDIO ZUCCHINO BODEGA Y VIÑEDOS DE EXTREMA ALTURA", "rubro": "Vinos y Bodega de Extrema Altura.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "RN N°9 - KM 1799 - Uquía", "telefono": "+54 9 388 4076174", "email": "vinasdeuquia.com.ar", "locality": "Uquía", "lat": -23.3833, "lng": -65.3667, "locApprox": false}, {"empresa": "BODEGA AMANECER ANDINO", "rubro": "Vinos de altura.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Rn 9 Km 1750, Chañarcito, Jujuy", "telefono": "+54 9 388-331401", "email": "amanecerandino.jujuy", "locality": "Chañarcito", "lat": -23.9, "lng": -65.42, "locApprox": false}, {"empresa": "BODEGA VIÑAS DEL PERCHEL", "rubro": "Vinos de altura.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Rn 9 - Villa El Perchel - Tilcara - Jujuy", "telefono": "+54 9 388-5794607", "email": "Bodegaelperchel", "locality": "Tilcara", "lat": -23.5667, "lng": -65.3833, "locApprox": false}, {"empresa": "BODEGA DUPONT", "rubro": "Cultivo de Vid y Elaboración de Vinos - Pasacana; Sikuri, Punta Corral.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Maimará", "telefono": "+54 9 388 473 1918", "email": "", "locality": "Maimará", "lat": -23.6333, "lng": -65.3333, "locApprox": false}, {"empresa": "BODEGA FINCA MACHUCA", "rubro": "Producción de vinos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Perico", "telefono": "+54 9 3885 84-6833", "email": "", "locality": "Perico", "lat": -24.3833, "lng": -65.1167, "locApprox": false}, {"empresa": "BODEGA LA SELESTINA", "rubro": "Elaboración de Vinos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Belgrano S/n° - B° San Pedrito - Maimara", "telefono": "+54-9-388-404-6294", "email": "", "locality": "Maimará", "lat": -23.6333, "lng": -65.3333, "locApprox": false}, {"empresa": "BODEGA DON MILAGRO", "rubro": "Cultivo de Vid y elaboración de vinos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "San Martín S/n - Purmamarca", "telefono": "+54 9 388-581-2782", "email": "", "locality": "Purmamarca", "lat": -23.75, "lng": -65.4833, "locApprox": false}, {"empresa": "VIÑEDOS YACORAITE S.A.", "rubro": "Producción de vinos, Mallku Malbec y Mallku Cabernet Franc.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Huacalera", "telefono": "+54 9 3885 82-3659", "email": "rtorres@yacoraitevinos.com", "locality": "Huacalera", "lat": -23.4167, "lng": -65.35, "locApprox": false}, {"empresa": "BODEGA LA MAGDALENA", "rubro": "Producción de vinos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Monterrico, El Carmen", "telefono": "+54 9 3884 61-8476", "email": "lamagdalenatr@gmail.com", "locality": "Monterrico", "lat": -24.2667, "lng": -64.9333, "locApprox": false}, {"empresa": "BODEGA EL MOLLE", "rubro": "Cultivo de Vid y Elaboración de Vinos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "RP N° 42 - Paraje Santa Catalina - Monterrico", "telefono": "+54-9-387-683-1213", "email": "", "locality": "Monterrico", "lat": -24.2667, "lng": -64.9333, "locApprox": false}, {"empresa": "BREW POINT SAS - CERVEZA NOA", "rubro": "Cerveza Artesanal.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Juan Ignacio Gorriti Mza15 L12 - Yala - Jujuy", "telefono": "+54 9 388-5801622", "email": "", "locality": "Yala", "lat": -24.0833, "lng": -65.3833, "locApprox": false}, {"empresa": "LA PICOSA - DE LUCAS H. MUÑOZ", "rubro": "Salsa / Chutney de frutas picantes especiadas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Belgrano N° 672 - M 12 - B° Centro - Tilcara", "telefono": "+54 388-468-2838", "email": "", "locality": "Tilcara", "lat": -23.5667, "lng": -65.3833, "locApprox": false}, {"empresa": "ARGENCROPS S.A.", "rubro": "Venta de Frutas, Legumbres y Cereales.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Alvear 678 - Piso 2 - Depto 23 - S.S. de Jujuy", "telefono": "+54 9 388-4243021", "email": "argencrops.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "FINCA PERALES", "rubro": "Productor de Cítricos y Frutas Tropicales.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Rp N°6 - Km 26 - Paraje: Finca Perales - Palma Sola - Jujuy", "telefono": "+54 9 3885 20 1597", "email": "", "locality": "Palma Sola", "lat": -23.55, "lng": -64.5667, "locApprox": false}, {"empresa": "HUERTA LAS SEÑORITAS", "rubro": "Prod. Agrícola, Hortalizas y Prod. Andinos c/servicio de entrega a domicilio.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Finca La Señorita S/n - Uquia - Humahuaca", "telefono": "+54 9 388 5-70-3707", "email": "", "locality": "Humahuaca", "lat": -23.2, "lng": -65.35, "locApprox": false}, {"empresa": "TE PACHA", "rubro": "Elaboración artesanal de té blends de distintas variedades.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Purmamarca", "telefono": "+54 9 11 5731-9012", "email": "nataliaortiz1976@gmail.com", "locality": "Purmamarca", "lat": -23.75, "lng": -65.4833, "locApprox": false}, {"empresa": "POCHOCLOS POP PRIM", "rubro": "Elaboración de alimentos a base de cereales. Pochoclos distintas variedades.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "General Paz N 429 - S.S. de Jujuy", "telefono": "+54 9 388-4235336 / +54 9 388-4767132", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "MIKUNA", "rubro": "Fabrica de Barras de Semillas y Cereales, con Conservantes Naturales.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Martearena S/n Lote 49 Mza Rural N° 2355 - Parque Ind. Ing Carlos Snopek - Palpala", "telefono": "+54 388 422 5680", "email": "", "locality": "Palpalá", "lat": -24.2528, "lng": -65.2069, "locApprox": false}, {"empresa": "COPETINES RICKAS", "rubro": "Productos de copetín, papas fritas clásicas, pay, saborizadas, palitos y maní salado.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Mirabal N 1321 - B.cnel. Arias - S.S. de Jujuy", "telefono": "+54 9 388-4832653", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "VICUS PET", "rubro": "Emprendimiento Diseño textiles para Mascotas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Cerro Centinela N° 1060 - B° Azopardo - S.S. de Jujuy", "telefono": "+54 9 388-312-2207", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "NUNI SMILE", "rubro": "Fábrica de calzados con diseño.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Belgrano N° 517 - B° Centro - S.S. de Jujuy", "telefono": "+54-388-513-4877 / 54-9-11-5346-1828", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "HOTEL MANANTIAL DEL SILENCIO", "rubro": "Hotel & Spa.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Rn N°52 - Km 3,5 Purmamarca", "telefono": "+54 0388 4908080 / 4908081", "email": "hotelmanantialdelsilencio.com", "locality": "Purmamarca", "lat": -23.75, "lng": -65.4833, "locApprox": false}, {"empresa": "HOTEL ALTOS DE LA VIÑA", "rubro": "Proveemos servicios turísticos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "", "telefono": "+54 9 3884 78-5783", "email": "eventos@hotelaltosdelavina.com.ar", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "CAPAC ÑAN EVT", "rubro": "Agencia de viajes receptiva dedicada al segmento MICE y Viajes privados en toda la provincia.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "", "telefono": "+54 9 3885 82-3659", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": true}, {"empresa": "ILLARI PUNA - MAGDALENA SÁNCHEZ DE BUSTAMANTE", "rubro": "Diseño y desarrollo de productos textiles con fibras naturales, que garantizan la trazabilidad e historia de Puna y Quebrada - Mantas - Chall - Alfombras - Tapados.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Dr. Aparicio N° 525 - B° Ciudad de Nieva - S.S. de Jujuy", "telefono": "+54 388 41004343", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "CHAYA ANDINA", "rubro": "Hilados Textiles de Lana, Pelos y sus Mezclas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Gral. Espejo 1940 - B° Alto Padilla - S.S. de Jujuy", "telefono": "+54 9 388-5971508", "email": "IG chayaandina15", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "KUNTUR", "rubro": "Objetos Artesanales en Madera con Aplicaciones de Plata, Textiles.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "El Ceibo 189 - B° Los Perales - S.S. De Jujuy", "telefono": "+54 9 388-5847708", "email": "kunturjujuyok", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "HILANDERIA WARMI", "rubro": "Productos Textiles con Fibras de Llama, Oveja y Algodón.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "P. Ind. Ing. Snopek 118, Palpalá - Jujuy", "telefono": "+54 9 388-5878910 / +54 9 388-4052777", "email": "warmi.org", "locality": "Palpalá", "lat": -24.2528, "lng": -65.2069, "locApprox": false}, {"empresa": "PUISCA", "rubro": "Productos Textiles en Fibra de Llama, Lana de Oveja, Hilo de Algodón con Diseño.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Padilla N° 484 - Tilcara", "telefono": "+54 9 388 500 5276", "email": "www.puisca.com/verano", "locality": "Tilcara", "lat": -23.5667, "lng": -65.3833, "locApprox": false}, {"empresa": "LA MISMIADA - LILIANA SUÁREZ", "rubro": "Textiles Artesanales en Fibra de Llama y Lana de Oveja.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Guillermo Snopeck S/n° - B° 28 Viviendas - Tumbaya", "telefono": "+54 9 388-471-4073", "email": "", "locality": "Tumbaya", "lat": -23.8667, "lng": -65.4333, "locApprox": false}, {"empresa": "TELARES BELLA ESPERANZA", "rubro": "Producción Artesanal de Textiles de Lana de Oveja y Fibra de Llama realizadas en Telar.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 22, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 27, "tier": "Baja", "justificacion": "Sector/insumos: 22/40; Escala societaria: 5/30", "direccion": "Tres Sargentos S/n - B° Medalla Milagrosa - Humahuaca - Jujuy", "telefono": "+54 9 388-4178020", "email": "bellaesperanzahumahuaca", "locality": "Humahuaca", "lat": -23.2, "lng": -65.35, "locApprox": false}, {"empresa": "EL CHUCUPAL SRL", "rubro": "Elaboración y Envasado de Frutos en Almíbar, Mermeladas, Jaleas, Chutney y Dulces en Pan.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 26, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 12/30", "direccion": "Ruta 42 S/n - El Carmen - Jujuy", "telefono": "+54 9 388-4244510", "email": "www.chucupal.com", "locality": "El Carmen", "lat": -24.4167, "lng": -65.1667, "locApprox": false}, {"empresa": "COOP. DE STEVIA DESHIDRATADOS PAMPA DULCE LTDA.", "rubro": "Pulpas, Jugos y Mermeladas Naturales con y sin Stevia.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 26, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 12/30", "direccion": "Mariano Moreno 165 - B° Centro - Perico - Jujuy", "telefono": "+54 9 388-4071165", "email": "", "locality": "Perico", "lat": -24.3833, "lng": -65.1167, "locApprox": false}, {"empresa": "COOP. AGRÍCOLA COVAY LTDA.", "rubro": "Producción de envasados de Tomate Chilto - Salsa Ketchup - Salsa Picante.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 26, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 12/30", "direccion": "Pasaje San Juan 1 - Valle Grande", "telefono": "+54 9 388-661-9039", "email": "", "locality": "Valle Grande", "lat": -23.15, "lng": -64.9833, "locApprox": false}, {"empresa": "COOP. DE PRODUCTORES APÍCOLAS DE JUJUY LTDA.", "rubro": "La Cooperativa ofrece la Miel pura de abejas. Las colmenas están ubicadas en los Valles, Yungas y Quebrada.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 26, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 12/30", "direccion": "El Carmen", "telefono": "+54 9 3884 97-0755", "email": "coopajujuy@yahoo.com.ar", "locality": "El Carmen", "lat": -24.4167, "lng": -65.1667, "locApprox": false}, {"empresa": "EXINCOR S.R.L.", "rubro": "Producción de envases y embalajes de cartón corrugado de calidad para la industria.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 24, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 12/30", "direccion": "La Noria - Río Blanco - Palpalá", "telefono": "+54 9 388-5007710", "email": "", "locality": "Palpalá", "lat": -24.2528, "lng": -65.2069, "locApprox": false}, {"empresa": "BUHOS BLANCOS S.R.L.", "rubro": "Producción de pisos de madera maciza para interior y decks de madera maciza.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 24, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 12/30", "direccion": "El Piquete", "telefono": "+54 9 3888 63-0923", "email": "forestalbuhosblancos@gmail.com", "locality": "El Piquete", "lat": -24.1, "lng": -64.9333, "locApprox": false}, {"empresa": "TRANS GOL SRL", "rubro": "Nieves Soriano - María Guitian.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 24, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 12/30", "direccion": "Ruta Provincial N° 42 Km 46 - Monterrico", "telefono": "+54 9 3884 72-3030 / 72-0959", "email": "", "locality": "Monterrico", "lat": -24.2667, "lng": -64.9333, "locApprox": false}, {"empresa": "SACUR S.R.L. - LUAS", "rubro": "Galletas de Harina de Arroz y productos sin Tacc.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 24, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 12/30", "direccion": "Av. Alte Brown 1235 - S.S. de Jujuy", "telefono": "", "email": "luasjujuy", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "MATACA FILM SRL.", "rubro": "Producción de Films y Video Cintas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 24, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 12/30", "direccion": "Av. Libertad n° 461 - Libertador Gral. San Martín", "telefono": "+54-9-3886-44-3511", "email": "", "locality": "Libertador Gral. San Martín", "lat": -23.8, "lng": -64.7833, "locApprox": false}, {"empresa": "AGROFORESTAL L.D. S.R.L.", "rubro": "Madera, carbón vegetal y manufacturas de madera, de espartería o cestería.", "hoja": "Organismos Públicos y Privados", "sectorPts": 12, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 24, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 12/30", "direccion": "Quinta 31, Pampa de Los Infiernos, Chaco", "telefono": "3644 450190", "email": "", "locality": null, "lat": null, "lng": null, "locApprox": false}, {"empresa": "J. L. GURRIERI LEGUMBRES S.R.L.", "rubro": "Comercializa Porotos en todas sus variedades.", "hoja": "Organismos Públicos y Privados", "sectorPts": 12, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 24, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 12/30", "direccion": "Malvinas Argentinas 397, Perico", "telefono": "4911588", "email": "", "locality": "Perico", "lat": -24.3833, "lng": -65.1167, "locApprox": false}, {"empresa": "ARTISTA VISUAL FELIX PEREZ", "rubro": "Pintura, Escultura, Muralismo, Ilustración Digital, Animación y aplicación de Tecnología Realidad Aumentada.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 10, "score": 21, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30; Tecnología/equipamiento mencionado: +10", "direccion": "", "telefono": "+54 9 3888 60-0222", "email": "gonzalezfelixezequiel@gmail.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": true}, {"empresa": "INTERFAZ DIGITAL SRL", "rubro": "Servicios de Consultores en TI.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 8, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 20, "tier": "Baja", "justificacion": "Sector/insumos: 8/40; Escala societaria: 12/30", "direccion": "Independencia 466 - B° Centro - S.S. de Jujuy", "telefono": "+54 9 388 412-2167", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "OPENIX SRL", "rubro": "Servicios de Informática y Software.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 8, "escalaPts": 12, "expBonus": 0, "techBonus": 0, "score": 20, "tier": "Baja", "justificacion": "Sector/insumos: 8/40; Escala societaria: 12/30", "direccion": "Ecuador N 185 - B° Moreno - S.S. de Jujuy", "telefono": "+54 9 388-404-4947", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "DULCES ARTESANALES JUSUY", "rubro": "Envasados - Mermeladas - Escabeches - Chutney.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "Av. Balbín 318, B° Bajo La Viña - S.S. de Jujuy", "telefono": "+54 9 388-5314161", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "XUMA AGUA DE MESA", "rubro": "Planta embotelladora de agua de mesa.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "San Luis Esq. 10 De Junio - S.S. de Jujuy", "telefono": "+54 9 388-4254779", "email": "xumajujuy.com.ar", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "EMPANADERIA ARANDA", "rubro": "Elaboración de Pastas Frescas - Fast Food. Venta de Comidas y Bebidas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "Av. Senador Perez 358 - S.S. de Jujuy", "telefono": "+54 9 388-4311252", "email": "empanaderiaaranda", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "FÁBRICA DE PASTAS LA NONA", "rubro": "Fábrica de pastas frescas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "Av. 2 De Abril N.93 - B. Malvinas - S.S. de Jujuy", "telefono": "+54 9 388 4443029", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "SALUMI", "rubro": "Elaboración de Embutidos Secos (Salames, Chorizos secos, Colorados) Curados con Sal (Bola de Lomo, Solomillo, Bondiola).", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "Rodriguez Peña N° 49 - B° Huaico", "telefono": "+54 9 388 497-9390", "email": "facebook.com/Salumi-P-K-charcuteria", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "Asoc. de Pequeños Prod. Aborígenes de La Puna - Red Puna", "rubro": "Elaboración de Chacinados y Encurtidos de llama.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "7 De Junio N° 69 - B° Mariano Moreno - La Quiaca", "telefono": "+54-9-388-403-7658", "email": "", "locality": "La Quiaca", "lat": -22.1055, "lng": -65.5992, "locApprox": false}, {"empresa": "ALFAJORES EL MOLLE - NESTOR LESCANO", "rubro": "Elaboración de Alfajores y Galletas con Harina de Quinoa, Trigo y Avena, Nueces Confitadas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "Calle Belgrano 417 - Tilcara - Jujuy", "telefono": "+54 9 388-4955614", "email": "", "locality": "Tilcara", "lat": -23.5667, "lng": -65.3833, "locApprox": false}, {"empresa": "FRIZADITAS", "rubro": "Producción de Comida Ultracongelada envasada al vacío.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "Viltipico N° 447 - B° San Pedrito - S.S. de Jujuy", "telefono": "+54 9 388 4662584", "email": "facebook.com/frizaditasargentina", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "PIZZAS IAN", "rubro": "Elaboración de Pizzas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "San Salvador de Jujuy", "telefono": "+54 9 3886 13-3798", "email": "lu14042015@gmail.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "CHAKITUSU", "rubro": "Servicio de Catering especializados en Productos de Carne de Llama.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "Lote 23 Mza 4 - B° Navea - Los Alisos", "telefono": "+54 9 3884 43-6031", "email": "", "locality": "El Carmen", "lat": -24.4167, "lng": -65.1667, "locApprox": false}, {"empresa": "PORKMAN", "rubro": "Embutidos y corte de carnes porcinas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "Ruta Prov. N 42 - Paraje El Sunchal - El Carmen", "telefono": "+54 9 388-4939718", "email": "porkmanjujuy", "locality": "El Carmen", "lat": -24.4167, "lng": -65.1667, "locApprox": false}, {"empresa": "LA PICADITA", "rubro": "Elaboración y Envasado de Chutney.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "Belgrano N° 672 - Tilcara", "telefono": "+54-9-388-468-2838", "email": "", "locality": "Tilcara", "lat": -23.5667, "lng": -65.3833, "locApprox": false}, {"empresa": "LA MABUCHA", "rubro": "Productos de Pastelería Artesanal.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "Río Pilcomayo N° 1315 - B. Moreno - S.S. de Jujuy", "telefono": "+54 9 388-685-7586", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "MISTURA JUJUY", "rubro": "Servicio de catering y restaurante de comidas regionales.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 14, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 19, "tier": "Baja", "justificacion": "Sector/insumos: 14/40; Escala societaria: 5/30", "direccion": "San Salvador de Jujuy", "telefono": "+54 9 3884 86-4533", "email": "misturajujuy@gmail.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "LOS TILIANES IC y FSA", "rubro": "Cal Viva - Cal Hidratada - Piedra Caliza p/Calcinación - Carbonato de Calcio Uso Petróleo.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Ruta Nac. N°9 - Km 1609 - Volcán", "telefono": "+54 0388 4906070", "email": "www.lostilianes.com.ar", "locality": "Volcán", "lat": -23.85, "lng": -65.4667, "locApprox": false}, {"empresa": "METALÚRGICA TOLABA", "rubro": "Fábrica de maquinaria de uso agropecuario y forestal.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Cuba N 141 - B° La Paz - Perico", "telefono": "+54 9 388-586-5853", "email": "", "locality": "Perico", "lat": -24.3833, "lng": -65.1167, "locApprox": false}, {"empresa": "DM CORTINAS", "rubro": "Cortinas Roller - Mobiliario - Constructora.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Leopoldo Barcena Este N° 34 - B° San Pedrito - S.S. de Jujuy", "telefono": "+54 9 387-577-3222", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "EL BOBINADOR", "rubro": "Taller de reparación de motores eléctricos y herramientas eléctricas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "", "telefono": "+54 9 11 5895-7049", "email": "elbobinador.juy@gmail.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": true}, {"empresa": "LA CONVERSIÓN DESTILERÍA", "rubro": "Fabrica de Bebidas Espirituosas - Gin - Grappa y Brandy.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Ruta Nacional N° 52 Km 6,7 - Paraje - Purmamarca", "telefono": "+54 9 11 6731 9570", "email": "", "locality": "Purmamarca", "lat": -23.75, "lng": -65.4833, "locApprox": false}, {"empresa": "FINCA DON ARMANDO", "rubro": "Producción y Empaque Frutihortícola - Higos, Pitayas, Zarzamoras, Frambuesas, Kakis, Arándanos, Mandarinas, Manzanas, Peras.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Intersec. Rn N° 66 Y 34 - Pampa Blanca", "telefono": "+54 9 388 433 1010", "email": "fincadonarmando.com", "locality": "Pampa Blanca", "lat": -24.35, "lng": -65.05, "locApprox": false}, {"empresa": "AGROHOLON", "rubro": "Producción Agrícola - Paltas y Maracuyá.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Salta N°1292 - S.S. de Jujuy", "telefono": "+54 9 388-5001111", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "NONA OLIMPIA", "rubro": "Cultivo de hojas verdes bajo sistema hidropónico. Berro, rúcula, espinaca, albahaca morada, genovesa, achicoria.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Alfonsina Storni N 1698 - Perico", "telefono": "+54 9 388-4300674", "email": "nonaolimpia", "locality": "Perico", "lat": -24.3833, "lng": -65.1167, "locApprox": false}, {"empresa": "CODEPO", "rubro": "Caprinos y Camélidos - Productos despostados envasados al vacío.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Hilario Ascasubi N° 290 - B° Campo Verde - S.S. de Jujuy", "telefono": "+54 9 388-470-3733", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "ROTISERIA XIBI XIBI - CONGELADOS", "rubro": "Variedad de Comidas para llevar y Empanadas Congeladas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "San Martín N° 902 - B° Centro", "telefono": "+54 0388 4229267", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "GINO INSALATTE", "rubro": "Elaboración de productos frescos. Servicios de comida.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Finca Mancini - R.p. N 42 - Paraje El Sunchal", "telefono": "+54 9 388-506-8143", "email": "", "locality": "El Carmen", "lat": -24.4167, "lng": -65.1667, "locApprox": false}, {"empresa": "LA GRANADEÑA - COMUNIDAD ABORIGEN NUEVO PIRQUITAS", "rubro": "Producción de Quinoa.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Nuevo Pirquitas", "telefono": "+54 9 388-508-5234", "email": "", "locality": "Mina Pirquitas (Puna)", "lat": -22.7, "lng": -66.05, "locApprox": false}, {"empresa": "MIL HOJAS CUADERNOS Y AGENDAS", "rubro": "Cuadernos y Agendas de Diseño.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Lainez 900, Dto 4 - 1° Piso B° San Pedrito - Jujuy", "telefono": "+54 9 388-4717875", "email": "MilhojasCuadernosyAgendas", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "BRASAS YANAY", "rubro": "Cajas de Autoencendido de Carbón.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Juan B. Justo N° 440 - B° Alte. Brown", "telefono": "", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": true}, {"empresa": "ARTES PLASTICAS NICOLAS ANÚN", "rubro": "Obras de Arte en Murales y Lienzo.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Bustamante N° 175 - B° Centro - S.S. De Jujuy", "telefono": "+54 9 388-467-0216", "email": "facebook.com/nico.anun", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "FAN PLÁSTICO DISEÑO SUSTENTABLE", "rubro": "Fabricación de Mochilas, Riñoneras, Billeteras, Gorros.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Juana A. De Padilla N° 2355 - B° Los Huaicos - S.S. de Jujuy", "telefono": "+54 9 388-470-1546", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "CARITO IDEAS & CREACIONES", "rubro": "Elab. de Prod. de Diseño en Fibrocemento - Yeso.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Capitán Giachino N° 440 B° Malvinas - S.S. de Jujuy", "telefono": "+54 9 388-445-7034", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "DEBO COSER MAS", "rubro": "Productos/accesorios de conoce como Marroquinería.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "San Salvador de Jujuy", "telefono": "+54 9 3884 96-4499", "email": "debo16437@gmail.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "DE LA QUEBRADA FIELTRO", "rubro": "Objetos Deco e Indumentaria en fieltro.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Rivadavia N° 463 - Tilcara", "telefono": "+54 9 388-5290002", "email": "", "locality": "Tilcara", "lat": -23.5667, "lng": -65.3833, "locApprox": false}, {"empresa": "SINCRÉTICO DISEÑOS", "rubro": "Objetos y Servicios de Diseño.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Zapiola N° 435 - B° Alto Padilla - S.S. de Jujuy", "telefono": "+54 9 388-590-4832", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "ARTES PLÁSTICAS ARIEL CORTEZ", "rubro": "Obras de arte. Charlas de arte / cultura. Atelier y asesoramiento a instituciones.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Dr. M. Padilla N 468 - Ciudad de Nieva - S.S. de Jujuy", "telefono": "+54 9 388-6863427", "email": "ariel.cortez.714", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "ARTES PLASTICAS MARTÍN ALEMÁN", "rubro": "Obras de Arte sobre Lienzo, Madera, Acuarelas, Dibujos, Ilustraciones Digitales, Arquitectónicos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Mza Ap 1 Lt 16 - 35 Viv - B° El Arenal - S.S. de Jujuy", "telefono": "+54 9 388-429-1499", "email": "facebook.com/martin.aleman.96", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "RESTAURANTE VIRACOCHA", "rubro": "Restaurante especializado en cocina regional jujeña y andina.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "San Salvador de Jujuy", "telefono": "+54 9 3885 80-1805", "email": "restoviracocha@gmail.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "PINU", "rubro": "Obras de Arte sobre Lienzo, Serigrafía de Arte aplicada sobre objetos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Belgrano N° 547 Piso 12 Dpto \"a\" - B° Centro - S.S. de Jujuy", "telefono": "+54-9-388-4-407-6971", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "CLAUDIA MACHADO", "rubro": "Producción integral de eventos institucionales, corporativos, artísticos y sociales.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Las Pircas N 531 B° Loma Golf - Palpalá", "telefono": "+54 9 388-6859189", "email": "", "locality": "Palpalá", "lat": -24.2528, "lng": -65.2069, "locApprox": false}, {"empresa": "ÑUSTANDINA", "rubro": "Elaboración de productos culturales.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Av. Bolivia 1205 - B° Ciudad De Nieva - S.S. de Jujuy", "telefono": "+54 9 388-4090088", "email": "nustandina.com.ar", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "ARTESANIAS UNQUILLAR", "rubro": "Nieves Soriano - María Guitian.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Susques", "telefono": "+54 9 3888 66-8008", "email": "", "locality": "Susques", "lat": -23.4, "lng": -66.3667, "locApprox": false}, {"empresa": "DOVLA SILVINA AGUIRRE", "rubro": "Emprendimiento Textil - Intervención de Prendas.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Las Espuelas N° 1455 - B° Campo Verde - S.S. de Jujuy", "telefono": "+54 9 388-504-1925", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "QARA", "rubro": "Carteras, bolsos, mochilas, accesorios de cuero combinando tejidos de llama.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Dr. Vidal 1206 - Depto A - B. 23 de Agosto", "telefono": "+54 9 351-7702903", "email": "qarajujuy.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "CHALLA HUASI", "rubro": "Prod. de Platería y Bazar con Diseño Andino.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Gral. Martín Ledesma 255 B° Alto La Viña - S.S. de Jujuy", "telefono": "+54 9 388-5810964", "email": "artehuasi", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "TACITA DE PLATA - FILIGRANA", "rubro": "Diseño y fabricación de joyas en plata y oro.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Huacalera - Tilcara", "telefono": "+54 9 3884 14-6137", "email": "tacitadeplata.88a@gmail.com", "locality": "Huacalera", "lat": -23.4167, "lng": -65.35, "locApprox": false}, {"empresa": "TURK MABEL ANDHRA", "rubro": "Estudio Servicios de Comercio Exterior.", "hoja": "Organismos Públicos y Privados", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Alvear 570, S.S. de Jujuy", "telefono": "4226091-4234770", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "GIACOPPO FICOSECO, CARLOS DANIEL", "rubro": null, "hoja": "Organismos Públicos y Privados", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "19 de Abril 661 - 2° Piso \"D\", S.S. de Jujuy", "telefono": "4225018", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "MEALLA DE MEALLA, ANA MARÍA", "rubro": null, "hoja": "Organismos Públicos y Privados", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Cnel. Dávila 112/114, C. Nieva, S.S. de Jujuy", "telefono": "4236254-422175", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "MEALLA, SEBASTIÁN ALEJANDRO", "rubro": null, "hoja": "Organismos Públicos y Privados", "sectorPts": 12, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 17, "tier": "Baja", "justificacion": "Sector/insumos: 12/40; Escala societaria: 5/30", "direccion": "Lavalle 137 6° Piso, S.S. de Jujuy", "telefono": "4311839", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "IBOTCHAT", "rubro": "Desarrollo de programación de chatbot's para automatizar WhatsApp de un negocio.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 8, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 13, "tier": "Baja", "justificacion": "Sector/insumos: 8/40; Escala societaria: 5/30", "direccion": "Av. Snopek N 1138 - Piso 1 - Depto A - S.S. de Jujuy", "telefono": "+54 9 388-5188511", "email": "ibotchats.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "WARMI INGENIERIA", "rubro": "Warmi Ingeniería es una consultora de Servicios Energéticos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 8, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 13, "tier": "Baja", "justificacion": "Sector/insumos: 8/40; Escala societaria: 5/30", "direccion": "", "telefono": "+54 9 3885 12-5386", "email": "ing.roxanasuruguay@gmail.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": true}, {"empresa": "FUNDACION URKU", "rubro": "Servicios de Trail & Running.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 8, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 13, "tier": "Baja", "justificacion": "Sector/insumos: 8/40; Escala societaria: 5/30", "direccion": "Armonia N° 206 - B° Chijra - S.S. de Jujuy", "telefono": "+54 9 388-586-0085", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "OMALY - AMLO SAS", "rubro": "Servicios de Micropodcasting Cultural y Blockchain.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 8, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 13, "tier": "Baja", "justificacion": "Sector/insumos: 8/40; Escala societaria: 5/30", "direccion": "Puesto del Marquez N° 659 - B° San Pedrito - S.S. de Jujuy", "telefono": "+54 9 388-443-7258", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "GEA DATA", "rubro": "Productos con Software de Geo Localización.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 8, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 13, "tier": "Baja", "justificacion": "Sector/insumos: 8/40; Escala societaria: 5/30", "direccion": "Avda. Balvin N° 2065 - B° Los Perales - S.S. de Jujuy", "telefono": "+54 9 388-470-8995", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "DA VINCI", "rubro": "Agencia de comunicación integral.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 8, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 13, "tier": "Baja", "justificacion": "Sector/insumos: 8/40; Escala societaria: 5/30", "direccion": "San Salvador de Jujuy", "telefono": "+54 9 3885 06-6262", "email": "ale@estudiodavinci.com.ar", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "ÑUÑIRI", "rubro": "Elaboración de Juegos y Juguetes Didácticos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Alvear N° 735 - B° Centro - S.S. de Jujuy", "telefono": "+54 9 3885 13-4946", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "ULUA MADERAS - TILDA LEDESMA", "rubro": "Tablas elaboradas con madera reciclada.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Ruta Nac. N 9 Km 13 1/2 Fca - Snopek - Yala", "telefono": "+54 9 388-5167308", "email": "ulua.maderas", "locality": "Yala", "lat": -24.0833, "lng": -65.3833, "locApprox": false}, {"empresa": "YOSY - KASPI", "rubro": "Juguetes Didácticos en Madera Reforestada.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Iriarte 249 - B° Gorriti - S.S. de Jujuy", "telefono": "+54 9 388-4231477", "email": "didacticosyosy.com.ar", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "KUNZA ARTE POP ANDINO", "rubro": "Productos Decorativos y Utilitarios de Cerámica Representando Personajes, Flora y Fauna de Jujuy.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Salta 851 - S.S. de Jujuy", "telefono": "+54 9 1131198708", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "CREACIONES ORIEL", "rubro": "Fabricamos productos de cerámica, de arcilla y pasta blanca.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Las Heras 740, San Salvador de Jujuy", "telefono": "+54 9 3886 85-2410", "email": "jimemaru83@gmail.com", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "ARTES PLÁSTICAS CECILIA ESPINOZA", "rubro": "Objetos de Arte - Pinturas - Esculturas y Decorativos.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Chile 57 - B° Arrieta - Ledesma - Jujuy", "telefono": "+54 9 388-6503020", "email": "Cecilia-Espinoza-Artista", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": true}, {"empresa": "MUGUET - SILVIA RIOS", "rubro": "Atelier de Arte - Talleres de pintura personalizados.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Alvear N° 836 - B° Centro - S.S. de Jujuy", "telefono": "+54 9 388 518-2493", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "CAROLINA FRANCO. ART", "rubro": "Fotografía, Collage, Pintura y Libros en base a producción Artística.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Zorrilla de San Martin N° 1887 - B° Alto Padilla - S.S. de Jujuy", "telefono": "+54 9 388-5754510", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "TEJIDOS LLAMA NEGRA", "rubro": "Prendas y Accesorios de Diseño en Fibra de Llama, Lana de Oveja y Materiales Reciclados.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Belgrano Esq. Florida - Purmamarca", "telefono": "+54 9 388 504 7088", "email": "llamanegra.myshopify.com", "locality": "Purmamarca", "lat": -23.75, "lng": -65.4833, "locApprox": false}, {"empresa": "LUMAY - SILVINA C. TOGNETTA", "rubro": "Elaboración de Tejido de Punto.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Lavalle S/n - Tilcara - Jujuy", "telefono": "+54 9 388-5218427", "email": "www.lumay.com.ar", "locality": "Tilcara", "lat": -23.5667, "lng": -65.3833, "locApprox": false}, {"empresa": "BONHOMIA", "rubro": "Diseño de Indumentaria basada en Zero Waste y Molderia de Cero Residuo.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Mza Ap 2 Lote 6 S/n - B° Alto Comedero - S.S. de Jujuy", "telefono": "+54 9 3515 07-1167", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}, {"empresa": "CORIUM", "rubro": "Producción de talabartería con diseño.", "hoja": "Empresas Sello Origen Jujuy", "sectorPts": 6, "escalaPts": 5, "expBonus": 0, "techBonus": 0, "score": 11, "tier": "Baja", "justificacion": "Sector/insumos: 6/40; Escala societaria: 5/30", "direccion": "Arismendi N 2342 - B San Pedrito - S.S. de Jujuy", "telefono": "+54 9 388 404-1205", "email": "", "locality": "San Salvador de Jujuy", "lat": -24.1858, "lng": -65.2995, "locApprox": false}];
+
+  const CATEGORY_MAP = {
+    40: "Minería, química y electrónica",
+    32: "Industria y manufactura",
+    22: "Agroindustria, turismo y textil",
+    14: "Alimentos y gastronomía artesanal",
+    12: "Otros / sin clasificar",
+    8: "Servicios profesionales y digitales",
+    6: "Artesanías y arte"
+  };
+  const CATEGORY_ORDER = [40, 32, 22, 14, 8, 6, 12];
+  const TIER_COLOR = { "Alta": "#3C7F5C", "Media": "#C48F35", "Baja": "#746457" };
+  const TIER_RANK = { "Alta": 3, "Media": 2, "Baja": 1 };
+
+  const rows = DATA.map(d => ({ ...d, categoria: CATEGORY_MAP[d.sectorPts] || "Otros / sin clasificar" }));
+  const mappable = rows.filter(r => r.lat !== null && r.lng !== null);
+
+  const state = { q: "", cat: "all", tiers: new Set(["Alta","Media","Baja"]), sort: "score-desc", locality: null };
+
+  // ---- category select ----
+  const catSelect = document.getElementById('jm-cat-select');
+  const catCounts = {};
+  rows.forEach(r => { catCounts[r.categoria] = (catCounts[r.categoria]||0) + 1; });
+  let catOptionsHtml = `<option value="all">Todas las categorías (${rows.length})</option>`;
+  CATEGORY_ORDER.forEach(pts => {
+    const label = CATEGORY_MAP[pts];
+    const n = catCounts[label] || 0;
+    if (n > 0) catOptionsHtml += `<option value="${label}">${label} (${n})</option>`;
+  });
+  catSelect.innerHTML = catOptionsHtml;
+
+  // ---- distribution bar ----
+  const distBar = document.getElementById('jm-dist-bar');
+  const distHint = document.getElementById('jm-dist-hint');
+  const tierTotals = { Alta: 0, Media: 0, Baja: 0 };
+  rows.forEach(r => tierTotals[r.tier]++);
+  const total = rows.length;
+
+  function renderDistBar() {
+    distBar.innerHTML = "";
+    ["Alta","Media","Baja"].forEach(tier => {
+      const n = tierTotals[tier];
+      const pct = (n/total*100).toFixed(1);
+      const seg = document.createElement('div');
+      seg.className = 'jm-dist-seg';
+      seg.dataset.tier = tier;
+      seg.style.width = pct + '%';
+      seg.textContent = n + ' ' + tier;
+      seg.classList.toggle('dim', !state.tiers.has(tier));
+      seg.addEventListener('click', () => {
+        if (state.tiers.size === 3) state.tiers = new Set([tier]);
+        else if (state.tiers.has(tier) && state.tiers.size === 1) state.tiers = new Set(["Alta","Media","Baja"]);
+        else state.tiers = new Set([tier]);
+        renderDistBar();
+        renderAll();
+      });
+      distBar.appendChild(seg);
+    });
+    distHint.textContent = state.tiers.size === 3
+      ? `Alta ${tierTotals.Alta} · Media ${tierTotals.Media} · Baja ${tierTotals.Baja} — de ${total} empresas evaluadas`
+      : `Filtrando por: ${[...state.tiers].join(", ")}. Tocá de nuevo para volver a ver todas.`;
+  }
+
+  // ---- map setup ----
+  const map = L.map('jm-map', { scrollWheelZoom: false, minZoom: 6 }).setView([-23.6, -65.5], 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 15
+  }).addTo(map);
+
+  let markerLayer = L.layerGroup().addTo(map);
+
+  function currentFilteredRows() {
+    return rows.filter(r => {
+      if (state.cat !== 'all' && r.categoria !== state.cat) return false;
+      if (!state.tiers.has(r.tier)) return false;
+      if (state.q) {
+        const hay = (r.empresa + ' ' + (r.rubro||'')).toLowerCase();
+        if (!hay.includes(state.q.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }
+
+  function buildLocalityGroups(filteredRows) {
+    const groups = {};
+    filteredRows.forEach(r => {
+      if (r.lat === null || r.lng === null) return;
+      if (!groups[r.locality]) groups[r.locality] = { name: r.locality, lat: r.lat, lng: r.lng, items: [], approx: r.locApprox };
+      groups[r.locality].items.push(r);
+    });
+    return Object.values(groups);
+  }
+
+  function dominantTier(items) {
+    const counts = { Alta: 0, Media: 0, Baja: 0 };
+    items.forEach(i => counts[i.tier]++);
+    let best = 'Baja', bestN = -1;
+    ['Alta','Media','Baja'].forEach(t => { if (counts[t] > bestN) { bestN = counts[t]; best = t; } });
+    return { dominant: best, counts };
+  }
+
+  function renderMap() {
+    markerLayer.clearLayers();
+    const filtered = currentFilteredRows();
+    const groups = buildLocalityGroups(filtered);
+    groups.forEach(g => {
+      const n = g.items.length;
+      const { dominant, counts } = dominantTier(g.items);
+      const radius = Math.max(16, Math.min(42, 14 + Math.sqrt(n) * 9));
+      const color = TIER_COLOR[dominant];
+      const icon = L.divIcon({
+        className: '',
+        html: `<div class="jm-marker-label" style="width:${radius}px;height:${radius}px;background:${color};font-size:${radius > 26 ? 13 : 11}px;">${n}</div>`,
+        iconSize: [radius, radius],
+        iconAnchor: [radius/2, radius/2]
+      });
+      const marker = L.marker([g.lat, g.lng], { icon }).addTo(markerLayer);
+      const approxNote = g.approx ? '<div style="font-size:10.5px;color:#B4812A;margin-bottom:6px;">Ubicación aproximada (sin dirección específica en la fuente)</div>' : '';
+      marker.bindPopup(`
+        <div class="jm-popup-title">${g.name}</div>
+        <div class="jm-popup-sub">${n} ${n===1 ? 'empresa' : 'empresas'} en este punto</div>
+        ${approxNote}
+        <div class="jm-popup-tiers">
+          <span style="color:${TIER_COLOR.Alta}">Alta ${counts.Alta}</span>
+          <span style="color:${TIER_COLOR.Media}">Media ${counts.Media}</span>
+          <span style="color:${TIER_COLOR.Baja}">Baja ${counts.Baja}</span>
+        </div>
+        <button class="jm-popup-btn" onclick="window.__jmFocusLocality('${g.name.replace(/'/g,"\\'")}')">Ver empresas</button>
+      `);
+    });
+  }
+
+  // ---- results list ----
+  const grid = document.getElementById('jm-grid');
+  const countEl = document.getElementById('jm-count');
+  const locChipWrap = document.getElementById('jm-loc-chip-wrap');
+
+  function escapeHtml(s) {
+    return (s||"").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function contactLine(row) {
+    let out = "";
+    if (row.telefono) {
+      const telHref = 'tel:' + row.telefono.replace(/[^0-9+]/g, '');
+      out += `<a href="${telHref}"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 3.5A1.5 1.5 0 013.5 2h1.148a1.5 1.5 0 011.465 1.175l.716 3.223a1.5 1.5 0 01-.42 1.409l-.9.9a12.05 12.05 0 005.68 5.68l.9-.9a1.5 1.5 0 011.409-.42l3.223.716A1.5 1.5 0 0118 15.352V16.5a1.5 1.5 0 01-1.5 1.5H15c-7.18 0-13-5.82-13-13V3.5z"/></svg>${escapeHtml(row.telefono)}</a>`;
+    }
+    if (row.email) {
+      out += `<a href="mailto:${escapeHtml(row.email.replace(/^www\./,''))}"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a2 2 0 00-2 2v.01L10 12l9-5.99V6a2 2 0 00-2-2H3z"/><path d="M18 8.24l-7.55 5.03a1 1 0 01-1.1 0L2 8.24V14a2 2 0 002 2h12a2 2 0 002-2V8.24z"/></svg>${escapeHtml(row.email)}</a>`;
+    }
+    if (row.direccion) {
+      out += `<span><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 103 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 002.274 1.765 11.842 11.842 0 00.976.544l.062.029.018.008.006.003zM10 11.25a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" clip-rule="evenodd"/></svg>${escapeHtml(row.direccion)}</span>`;
+    }
+    if (!row.telefono && !row.email && !row.direccion) {
+      out = `<span class="jm-empty">Sin datos de contacto en la fuente</span>`;
+    }
+    return out;
+  }
+
+  function renderLocChip() {
+    if (!state.locality) { locChipWrap.innerHTML = ""; return; }
+    locChipWrap.innerHTML = `<span class="jm-loc-chip">${escapeHtml(state.locality)}<button id="jm-clear-loc" aria-label="Quitar filtro de localidad">&times;</button></span>`;
+    document.getElementById('jm-clear-loc').addEventListener('click', () => {
+      state.locality = null;
+      renderAll();
+    });
+  }
+
+  function renderGrid() {
+    let filtered = currentFilteredRows();
+    if (state.locality) filtered = filtered.filter(r => r.locality === state.locality);
+
+    if (state.sort === 'score-desc') filtered.sort((a,b) => b.score - a.score);
+    else if (state.sort === 'score-asc') filtered.sort((a,b) => a.score - b.score);
+    else filtered.sort((a,b) => a.empresa.localeCompare(b.empresa, 'es'));
+
+    countEl.textContent = filtered.length + (filtered.length === 1 ? ' empresa' : ' empresas');
+    renderLocChip();
+
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div class="jm-empty-state" style="grid-column: 1/-1;"><h3>Sin resultados</h3><p>Probá con otro término de búsqueda o limpiá los filtros.</p></div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map(r => `
+      <div class="jm-card">
+        <div class="jm-card-top">
+          <div>
+            <span class="jm-cat">${escapeHtml(r.categoria)}</span>${r.locality ? `<span class="jm-loc">· ${escapeHtml(r.locality)}</span>` : ''}
+            <h3 class="jm-name">${escapeHtml(r.empresa)}</h3>
+          </div>
+          <span class="jm-badge" data-tier="${r.tier}">${r.tier === 'Alta' ? 'Alta prob.' : r.tier === 'Media' ? 'Media prob.' : 'Baja prob.'}</span>
+        </div>
+        <p class="jm-rubro">${escapeHtml(r.rubro)}</p>
+        <div class="jm-score-row">
+          <div class="jm-score-bar-bg"><div class="jm-score-bar-fill" style="width:${r.score}%; background:${TIER_COLOR[r.tier]};"></div></div>
+          <span class="jm-score-num mono">${r.score}/100</span>
+        </div>
+        <div class="jm-contact">${contactLine(r)}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderAll() {
+    renderMap();
+    renderGrid();
+  }
+
+  window.__jmFocusLocality = function(name) {
+    state.locality = name;
+    renderGrid();
+    document.getElementById('jm-map').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const el = document.querySelector('#jm-app .jm-results-head');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  document.getElementById('jm-search-input').addEventListener('input', (e) => { state.q = e.target.value; renderAll(); });
+  catSelect.addEventListener('change', (e) => { state.cat = e.target.value; renderAll(); });
+  document.getElementById('jm-sort-select').addEventListener('change', (e) => { state.sort = e.target.value; renderGrid(); });
+  document.getElementById('jm-reset').addEventListener('click', () => {
+    state.q = ""; state.cat = "all"; state.tiers = new Set(["Alta","Media","Baja"]); state.sort = "score-desc"; state.locality = null;
+    document.getElementById('jm-search-input').value = "";
+    catSelect.value = "all";
+    document.getElementById('jm-sort-select').value = "score-desc";
+    renderDistBar();
+    renderAll();
+  });
+
+  renderDistBar();
+  renderAll();
+})();
+</script>
+
+</body>
+</html>
