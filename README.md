@@ -31,11 +31,11 @@ Al ser un documento HTML autónomo (Single File Component style), no requiere un
 
 1. Clona este repositorio en tu entorno local:
    ```bash
-   git clone https://github.com/tu-usuario/mapa-oportunidades-jujuy.git
+   git clone https://github.com/diego305/vendedor.git
    ```
 2. Navega al directorio del proyecto:
    ```bash
-   cd mapa-oportunidades-jujuy
+   cd vendedorjujuy
    ```
 3. Abre el archivo `index.html` directamente en tu navegador web preferido, o sírvelo a través de un servidor local (recomendado para evitar bloqueos CORS con algunos navegadores):
    ```bash
