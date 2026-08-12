@@ -31,7 +31,7 @@ Al ser un documento HTML autónomo (Single File Component style), no requiere un
 
 1. Clona este repositorio en tu entorno local:
    ```bash
-   git clone https://github.com/diego305/vendedor.git
+   git clone https://github.com/diego305/vendedorjujuy.git
    ```
 2. Navega al directorio del proyecto:
    ```bash
